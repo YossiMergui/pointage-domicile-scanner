@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Scanner QR - Pointage domicile</title>
+  <title>QR Scanner - Home Clock-in</title>
 
   <script src="https://unpkg.com/html5-qrcode"></script>
 
@@ -42,30 +43,203 @@
       color: white;
       font-size: 16px;
     }
+
+    body[dir="rtl"] {
+      direction: rtl;
+    }
   </style>
 </head>
 
 <body>
-  <h2>Scanner le QR code</h2>
-  <p>Place le QR code devant la caméra de ton iPhone.</p>
+  <h2 id="title">Scanner le QR code</h2>
+  <p id="instruction">Place le QR code devant la caméra de ton téléphone.</p>
 
   <div id="reader"></div>
   <div id="status">Démarrage de la caméra…</div>
 
-  <button onclick="cancelScanner()">Annuler</button>
+  <button id="cancelButton" onclick="cancelScanner()">Annuler</button>
 
   <script>
     let scanner = null;
     let scanFinished = false;
 
+    const translations = {
+      fr: {
+        title: "Scanner le QR code",
+        instruction: "Place le QR code devant la caméra de ton téléphone.",
+        starting: "Démarrage de la caméra…",
+        active: "Caméra active. Présente le QR code devant l'objectif.",
+        detected: "QR code détecté. Transmission en cours…",
+        transmitted: "QR code transmis. Retour au pointage…",
+        noOpener: "Impossible de retourner au pointage. Ferme cette page et recommence.",
+        transmissionError: "Erreur lors de la transmission du QR code.",
+        cameraError: "Impossible d'ouvrir la caméra : ",
+        safari: ". Vérifie les autorisations de Safari.",
+        cancel: "Annuler"
+      },
+      ro: {
+        title: "Scanează codul QR",
+        instruction: "Așază codul QR în fața camerei telefonului.",
+        starting: "Pornirea camerei…",
+        active: "Camera este activă. Apropie codul QR de obiectiv.",
+        detected: "Cod QR detectat. Se transmite…",
+        transmitted: "Cod QR transmis. Revenire la pontaj…",
+        noOpener: "Imposibil de revenit la pontaj. Închide această pagină și încearcă din nou.",
+        transmissionError: "Eroare la transmiterea codului QR.",
+        cameraError: "Imposibil de pornit camera: ",
+        safari: ". Verifică permisiunile Safari.",
+        cancel: "Anulează"
+      },
+      en: {
+        title: "Scan the QR code",
+        instruction: "Hold the QR code in front of your phone's camera.",
+        starting: "Starting camera…",
+        active: "Camera active. Hold the QR code in front of the lens.",
+        detected: "QR code detected. Sending…",
+        transmitted: "QR code sent. Returning to clock-in…",
+        noOpener: "Unable to return to clock-in. Close this page and try again.",
+        transmissionError: "Error sending the QR code.",
+        cameraError: "Unable to open the camera: ",
+        safari: ". Check Safari permissions.",
+        cancel: "Cancel"
+      },
+      ru: {
+        title: "Сканировать QR-код",
+        instruction: "Поднесите QR-код к камере телефона.",
+        starting: "Запуск камеры…",
+        active: "Камера активна. Покажите QR-код объективу.",
+        detected: "QR-код обнаружен. Отправка…",
+        transmitted: "QR-код отправлен. Возврат к отметке времени…",
+        noOpener: "Не удалось вернуться к отметке времени. Закройте страницу и попробуйте снова.",
+        transmissionError: "Ошибка отправки QR-кода.",
+        cameraError: "Не удалось открыть камеру: ",
+        safari: ". Проверьте разрешения Safari.",
+        cancel: "Отмена"
+      },
+      hu: {
+        title: "QR-kód beolvasása",
+        instruction: "Tartsd a QR-kódot a telefon kamerája elé.",
+        starting: "Kamera indítása…",
+        active: "A kamera aktív. Tartsd a QR-kódot az objektív elé.",
+        detected: "QR-kód észlelve. Továbbítás…",
+        transmitted: "QR-kód elküldve. Visszatérés a munkaidő-nyilvántartáshoz…",
+        noOpener: "Nem sikerült visszatérni. Zárd be ezt az oldalt, és próbáld újra.",
+        transmissionError: "Hiba a QR-kód továbbításakor.",
+        cameraError: "Nem sikerült megnyitni a kamerát: ",
+        safari: ". Ellenőrizd a Safari engedélyeit.",
+        cancel: "Mégse"
+      },
+      fil: {
+        title: "I-scan ang QR code",
+        instruction: "Iharap ang QR code sa harap ng camera ng iyong telepono.",
+        starting: "Binubuksan ang camera…",
+        active: "Aktibo ang camera. Itapat ang QR code sa lente.",
+        detected: "Nakita ang QR code. Ipinapadala…",
+        transmitted: "Naipadala ang QR code. Bumabalik sa pag-time in…",
+        noOpener: "Hindi makabalik sa pag-time in. Isara ang pahinang ito at subukang muli.",
+        transmissionError: "Nagkaroon ng error sa pagpapadala ng QR code.",
+        cameraError: "Hindi mabuksan ang camera: ",
+        safari: ". Suriin ang mga pahintulot sa Safari.",
+        cancel: "Kanselahin"
+      },
+      es: {
+        title: "Escanear el código QR",
+        instruction: "Coloca el código QR delante de la cámara de tu teléfono.",
+        starting: "Iniciando la cámara…",
+        active: "Cámara activa. Coloca el código QR delante del objetivo.",
+        detected: "Código QR detectado. Enviando…",
+        transmitted: "Código QR enviado. Volviendo al registro horario…",
+        noOpener: "No se puede volver al registro horario. Cierra esta página e inténtalo de nuevo.",
+        transmissionError: "Error al enviar el código QR.",
+        cameraError: "No se puede abrir la cámara: ",
+        safari: ". Comprueba los permisos de Safari.",
+        cancel: "Cancelar"
+      },
+      it: {
+        title: "Scansiona il codice QR",
+        instruction: "Posiziona il codice QR davanti alla fotocamera del telefono.",
+        starting: "Avvio della fotocamera…",
+        active: "Fotocamera attiva. Mostra il codice QR all'obiettivo.",
+        detected: "Codice QR rilevato. Invio in corso…",
+        transmitted: "Codice QR inviato. Ritorno alla timbratura…",
+        noOpener: "Impossibile tornare alla timbratura. Chiudi questa pagina e riprova.",
+        transmissionError: "Errore durante l'invio del codice QR.",
+        cameraError: "Impossibile aprire la fotocamera: ",
+        safari: ". Controlla le autorizzazioni di Safari.",
+        cancel: "Annulla"
+      },
+      ar: {
+        title: "مسح رمز QR",
+        instruction: "ضع رمز QR أمام كاميرا هاتفك.",
+        starting: "جارٍ تشغيل الكاميرا…",
+        active: "الكاميرا نشطة. ضع رمز QR أمام العدسة.",
+        detected: "تم اكتشاف رمز QR. جارٍ الإرسال…",
+        transmitted: "تم إرسال رمز QR. جارٍ العودة إلى تسجيل الوقت…",
+        noOpener: "تعذرت العودة إلى تسجيل الوقت. أغلق هذه الصفحة وحاول مرة أخرى.",
+        transmissionError: "حدث خطأ أثناء إرسال رمز QR.",
+        cameraError: "تعذر فتح الكاميرا: ",
+        safari: ". تحقق من أذونات Safari.",
+        cancel: "إلغاء"
+      },
+      bm: {
+        title: "QR code scan",
+        instruction: "I ka QR code bila i ka telefoni kamera ɲɛ.",
+        starting: "Kamera bɛ daminɛ…",
+        active: "Kamera bɛ baara kɛ. QR code bila kamera ɲɛ.",
+        detected: "QR code ye a la. Bɛ ci…",
+        transmitted: "QR code sera. Bɛ segin don sɛbɛnni kan…",
+        noOpener: "Aw ye segin don sɛbɛnni kan. Aw ye nin yɔrɔ datugu ka segin a la.",
+        transmissionError: "Fili kɛra QR code ci la.",
+        cameraError: "Kamera ma se ka dayɛlɛ: ",
+        safari: ". Aw ye Safari la sɔrɔli lajɛ.",
+        cancel: "A dabila"
+      }
+    };
+
+    function getLanguage() {
+      const params = new URLSearchParams(window.location.search);
+      let lang = params.get("lang");
+
+      if (!lang && window.opener) {
+        try {
+          lang = window.opener.localStorage.getItem("pointage_language");
+        } catch (e) {}
+      }
+
+      if (!lang) {
+        lang = navigator.language || "fr";
+      }
+
+      lang = lang.toLowerCase().split("-")[0];
+
+      if (lang === "mo") lang = "ro";
+      if (lang === "tl") lang = "fil";
+
+      return translations[lang] ? lang : "fr";
+    }
+
+    const currentLanguage = getLanguage();
+    const t = translations[currentLanguage];
+
+    function applyLanguage() {
+      document.documentElement.lang = currentLanguage;
+      document.documentElement.dir = currentLanguage === "ar" ? "rtl" : "ltr";
+      document.body.dir = currentLanguage === "ar" ? "rtl" : "ltr";
+
+      document.getElementById("title").textContent = t.title;
+      document.getElementById("instruction").textContent = t.instruction;
+      document.getElementById("cancelButton").textContent = t.cancel;
+      showStatus(t.starting);
+    }
+
     function showStatus(message) {
-      document.getElementById('status').textContent = message;
+      document.getElementById("status").textContent = message;
     }
 
     async function startScanner() {
       try {
         if (!window.Html5Qrcode) {
-          throw new Error("Le lecteur QR n'a pas pu être chargé.");
+          throw new Error("QR_READER_LOAD_ERROR");
         }
 
         scanner = new Html5Qrcode("reader");
@@ -81,13 +255,13 @@
             if (scanFinished) return;
             scanFinished = true;
 
-            showStatus("QR code détecté. Transmission en cours…");
+            showStatus(t.detected);
 
             try {
               await scanner.stop();
 
               if (!window.opener) {
-                showStatus("Impossible de retourner au pointage. Ferme cette page et recommence.");
+                showStatus(t.noOpener);
                 return;
               }
 
@@ -99,14 +273,14 @@
                 "*"
               );
 
-              showStatus("QR code transmis. Retour au pointage…");
+              showStatus(t.transmitted);
 
               setTimeout(function() {
                 window.close();
               }, 700);
 
             } catch (error) {
-              showStatus("Erreur lors de la transmission du QR code.");
+              showStatus(t.transmissionError);
               scanFinished = false;
             }
           },
@@ -115,14 +289,14 @@
           }
         );
 
-        showStatus("Caméra active. Présente le QR code devant l'objectif.");
+        showStatus(t.active);
 
       } catch (error) {
-        showStatus(
-          "Impossible d'ouvrir la caméra : " +
-          (error.message || error) +
-          ". Vérifie les autorisations de Safari."
-        );
+        const detail = error.message === "QR_READER_LOAD_ERROR"
+          ? t.cameraError + "QR reader" + t.safari
+          : t.cameraError + (error.message || error) + t.safari;
+
+        showStatus(detail);
       }
     }
 
@@ -138,6 +312,7 @@
       window.close();
     }
 
+    applyLanguage();
     startScanner();
   </script>
 </body>

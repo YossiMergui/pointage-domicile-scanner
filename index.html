@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Scanner QR - Pointage domicile</title>
+
+  <script src="https://unpkg.com/html5-qrcode"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+      background: #f5f5f5;
+      color: #222;
+    }
+
+    h2 { margin-bottom: 10px; }
+
+    #reader {
+      width: 100%;
+      max-width: 420px;
+      margin: 20px auto;
+      background: white;
+    }
+
+    #status {
+      padding: 15px;
+      margin: 15px auto;
+      max-width: 420px;
+      background: white;
+      border-radius: 8px;
+      line-height: 1.5;
+    }
+
+    button {
+      padding: 14px 25px;
+      border: 0;
+      border-radius: 8px;
+      background: #444;
+      color: white;
+      font-size: 16px;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>Scanner le QR code</h2>
+  <p>Place le QR code devant la caméra de ton iPhone.</p>
+
+  <div id="reader"></div>
+  <div id="status">Démarrage de la caméra…</div>
+
+  <button onclick="cancelScanner()">Annuler</button>
+
+  <script>
+    let scanner = null;
+    let scanFinished = false;
+
+    function showStatus(message) {
+      document.getElementById('status').textContent = message;
+    }
+
+    async function startScanner() {
+      try {
+        if (!window.Html5Qrcode) {
+          throw new Error("Le lecteur QR n'a pas pu être chargé.");
+        }
+
+        scanner = new Html5Qrcode("reader");
+
+        await scanner.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1
+          },
+          async function(decodedText) {
+            if (scanFinished) return;
+            scanFinished = true;
+
+            showStatus("QR code détecté. Transmission en cours…");
+
+            try {
+              await scanner.stop();
+
+              if (!window.opener) {
+                showStatus("Impossible de retourner au pointage. Ferme cette page et recommence.");
+                return;
+              }
+
+              window.opener.postMessage(
+                {
+                  type: "POINTAGE_QR_SCANNED",
+                  token: decodedText
+                },
+                "*"
+              );
+
+              showStatus("QR code transmis. Retour au pointage…");
+
+              setTimeout(function() {
+                window.close();
+              }, 700);
+
+            } catch (error) {
+              showStatus("Erreur lors de la transmission du QR code.");
+              scanFinished = false;
+            }
+          },
+          function() {
+            // Les tentatives de lecture sans QR détecté sont normales.
+          }
+        );
+
+        showStatus("Caméra active. Présente le QR code devant l'objectif.");
+
+      } catch (error) {
+        showStatus(
+          "Impossible d'ouvrir la caméra : " +
+          (error.message || error) +
+          ". Vérifie les autorisations de Safari."
+        );
+      }
+    }
+
+    async function cancelScanner() {
+      scanFinished = true;
+
+      if (scanner) {
+        try {
+          await scanner.stop();
+        } catch (e) {}
+      }
+
+      window.close();
+    }
+
+    startScanner();
+  </script>
+</body>
+</html>
